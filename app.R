@@ -26,10 +26,14 @@ ui <- fluidPage(
       }
       #resample:hover  { background-color: #3E7C99; }
       #resample:active { transform: scale(0.97); }
-      .well { background-color: #f7f7f7; border: 1px solid #ddd; }
-      .well .form-group { margin-bottom: 5px; }
-      .well h4 { margin-bottom: 6px; }
+      .well { background-color: #f7f7f7; border: 1px solid #ddd;
+              padding: 8px 12px; margin-bottom: 8px; }
+      .well .form-group { margin-bottom: 2px; }
+      .well h4 { margin-bottom: 4px; margin-top: 2px; }
+      .irs--shiny .irs-bar { height: 3px; }
+      .irs--shiny { height: 40px; }
       blockquote p { margin-bottom: 6px; }
+      .sidebar-panel { padding-top: 8px; }
     "))
   ),
   
@@ -45,14 +49,14 @@ ui <- fluidPage(
         h4("Group A", style = "color:#1B9E77; margin-top:0;"),
         sliderInput("mean_a", "Mean:", min = -20, max = 20, value =  0, step = 0.5),
         sliderInput("sd_a",   "SD:",   min =  0.5, max = 10, value =  2, step = 0.5),
-        sliderInput("n_a",    "n:",    min =  5,   max = 200, value = 30, step = 5)
+        sliderInput("n_a",    "n:",    min =  5,   max = 200, value = 50, step = 5)
       ),
       
       wellPanel(
         h4("Group B", style = "color:#D95F02; margin-top:0;"),
-        sliderInput("mean_b", "Mean:", min = -20, max = 20, value =  5, step = 0.5),
-        sliderInput("sd_b",   "SD:",   min =  0.5, max = 10, value =  2, step = 0.5),
-        sliderInput("n_b",    "n:",    min =  5,   max = 200, value = 30, step = 5)
+        sliderInput("mean_b", "Mean:", min = -20, max = 20, value =  1.5, step = 0.5),
+        sliderInput("sd_b",   "SD:",   min =  0.5, max = 10, value =  1, step = 0.5),
+        sliderInput("n_b",    "n:",    min =  5,   max = 200, value = 50, step = 5)
       ),
       
       actionButton("resample", "Resample"),
@@ -198,7 +202,7 @@ ui <- fluidPage(
             p(
               strong("Reading this plot:"),
               " The x-axis shows the raw difference between group means. ",
-              "The blue ribbon shows the range of W values across 1000 random samples — ",
+              "The blue ribbon shows the range of W values across 500 random samples — ",
               "lower W means more evidence against normality. ",
               "The dashed grey line is the critical W for your current sample sizes ",
               "(estimated from the simulation), below which p < 0.05. ",
@@ -416,7 +420,7 @@ server <- function(input, output, session) {
     
     max_diff <- 5 * max(sd_a, sd_b)
     diffs    <- seq(0, max_diff, length.out = 40)
-    n_rep    <- 1000
+    n_rep    <- 500
     
     # Run simulation: collect W statistic and significance for each replicate
     sim <- lapply(diffs, function(d) {
