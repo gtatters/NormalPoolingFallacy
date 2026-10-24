@@ -120,8 +120,8 @@ ui <- fluidPage(
             p(
               strong("What are we looking at?"),
               " Each curve represents the true population from which each ",
-              "group's data will be drawn. Both populations are perfectly normal — ",
-              "they just have different means and/or standard deviations. ",
+              "group's data will be drawn. Both populations are perfectly normal. ",
+              "They just have different means and/or standard deviations. ",
               "Use the sliders to move the populations closer together or further apart, ",
               "and to change how spread out each one is."
             ),
@@ -131,7 +131,7 @@ ui <- fluidPage(
               "A 2025 review in ", em("Royal Society Open Science"),
               " found that ", strong("over 70% of ecology papers and 90% of biology papers"),
               " applied normality tests to the raw data rather than to model residuals. ",
-              "This is not a fringe error — it is the dominant practice in the published literature.",
+              "This is not a fringe error. It is the dominant practice in the published literature.",
               tags$br(),
               tags$small(
                 style = "color:#777;",
@@ -170,7 +170,7 @@ ui <- fluidPage(
             ),
             p(
               "The problem: when data come from two groups with different means, ",
-              "pooling them before testing creates a mixture distribution — which ",
+              "pooling them before testing creates a mixture distribution, which ",
               "may appear non-normal even though each group is perfectly normal on its own. ",
               "The tabs above let you see exactly when and why this happens."
             )
@@ -189,7 +189,7 @@ ui <- fluidPage(
               " We drew a random sample from each population. ",
               "Each histogram shows the data from one group on its own. ",
               "Because each group was drawn from a normal population, ",
-              "each sample should look roughly bell-shaped — though with small ",
+              "each sample should look roughly bell-shaped, though with small ",
               "sample sizes there will be some random wobble."
             )
           )
@@ -217,7 +217,7 @@ ui <- fluidPage(
               strong("Why this matters for your methods section."),
               " A common mistake is to check the raw (pooled) data for normality ",
               "before running a t-test, ANOVA, or linear model. But the normality ",
-              "assumption in those tests is NOT about the raw pooled data — it is ",
+              "assumption in those tests is NOT about the raw pooled data. It is ",
               "about the data ",
               em("within each group"),
               " (or equivalently, about the residuals after fitting the model)."
@@ -225,10 +225,10 @@ ui <- fluidPage(
             p(
               "If your two groups have different means, their data will pile up in ",
               "different places. Pool them together and you can get a ",
-              "double-humped (bimodal) distribution — which will fail a normality ",
+              "double-humped (bimodal) distribution, which will fail a normality ",
               "test even though each group is perfectly normal on its own. ",
               "Testing the pooled data does not tell you whether your groups meet ",
-              "the assumption; it mainly tells you whether your groups differ — ",
+              "the assumption; it mainly tells you whether your groups differ, ",
               "which is exactly what you are trying to test in the first place!"
             ),
             p(
@@ -239,8 +239,8 @@ ui <- fluidPage(
             p(
               strong("Reading this plot:"),
               " The x-axis shows the raw difference between group means. ",
-              "The blue ribbon shows the range of W values across 500 random samples — ",
-              "lower W means more evidence against normality. ",
+              "The blue ribbon shows the range of W values across 500 random samples. ",
+              "Lower W means more evidence against normality. ",
               "The dashed grey line is the critical W for your current sample sizes ",
               "(estimated from the simulation), below which p < 0.05. ",
               "The orange shaded zone marks where more than half of all samples ",
@@ -421,7 +421,7 @@ server <- function(input, output, session) {
         "\u2705 The pooled data pass the Shapiro-Wilk test ",
         "(W = ", w_stat, ", p = ", p_val, "). ",
         "This tends to happen when the two group means are close together ",
-        "or the sample sizes are small — the two humps haven't been ",
+        "or the sample sizes are small, so the two humps haven't been ",
         "separated enough to be detectable yet. ",
         "Try moving the means further apart to see the test fail."
       )
@@ -485,7 +485,7 @@ server <- function(input, output, session) {
     prop_sig <- apply(sig_mat, 2, mean)
     
     # Critical W estimated from simulation at d=0: the 5th percentile of W
-    # when there is no true group difference — this is the n-adjusted threshold
+    # when there is no true group difference; this is the n-adjusted threshold
     crit_w <- quantile(w_mat[, 1], probs = 0.05)
     
     # Where does the majority (>50%) of samples start failing?
