@@ -12,6 +12,26 @@
 #shinylive::export(appdir = "../NormalPoolingFallacy/", destdir = "docs")
 #httpuv::runStaticServer("docs/", port = 8008)
 
+# ---------------------------------------------------------
+# Safari-safe plotting
+# Draws a base-R plot as a PNG image. Stand-in for renderPlot(), which
+# currently fails in Safari under Shinylive. Use with imageOutput().
+# ---------------------------------------------------------
+render_base <- function(id, session, draw) {
+  renderImage({
+    cd <- session$clientData
+    w  <- cd[[paste0("output_", id, "_width")]]
+    h  <- cd[[paste0("output_", id, "_height")]]
+    req(w > 0, h > 0)
+    pr <- cd$pixelratio
+    if (is.null(pr)) pr <- 1
+    f <- tempfile(fileext = ".png")
+    png(f, width = w * pr, height = h * pr, res = 72 * pr)
+    tryCatch(draw(), finally = dev.off())
+    list(src = f, contentType = "image/png", width = w, height = h)
+  }, deleteFile = TRUE)
+}
+
 ui <- fluidPage(
   
   tags$head(
@@ -34,6 +54,23 @@ ui <- fluidPage(
       .irs--shiny { height: 40px; }
       blockquote p { margin-bottom: 6px; }
       .sidebar-panel { padding-top: 8px; }
+
+      .nav-tabs > li.active > a,
+      .nav-tabs > li.active > a:hover,
+      .nav-tabs > li.active > a:focus {
+        color: #009499 !important;
+        font-size: 12px; font-weight: bold;
+        background-color: #f0fafa !important;
+      }
+      .nav-tabs > li > a {
+        color: #666;
+        font-size: 12px;
+        padding: 5px 9px;
+      }
+      .nav-tabs > li > a:hover {
+        color: #009499;
+        background-color: #f0fafa;
+      }
     "))
   ),
   
@@ -75,9 +112,9 @@ ui <- fluidPage(
         
         # ---- Tab 1: Populations ----
         tabPanel(
-          "Populations",
+          "1. Populations",
           br(),
-          plotOutput("pop_plot", height = "420px"),
+          imageOutput("pop_plot", height = "420px"),
           br(),
           wellPanel(
             p(
@@ -142,9 +179,9 @@ ui <- fluidPage(
         
         # ---- Tab 2: Samples ----
         tabPanel(
-          "Samples",
+          "2. Samples",
           br(),
-          plotOutput("sample_plot", height = "420px"),
+          imageOutput("sample_plot", height = "420px"),
           br(),
           wellPanel(
             p(
@@ -160,9 +197,9 @@ ui <- fluidPage(
         
         # ---- Tab 3: Pooled data ----
         tabPanel(
-          "Pooled Data",
+          "3. Pooled Data",
           br(),
-          plotOutput("pooled_plot", height = "420px"),
+          imageOutput("pooled_plot", height = "420px"),
           br(),
           wellPanel(
             uiOutput("pooled_explanation")
@@ -171,9 +208,9 @@ ui <- fluidPage(
         
         # ---- Tab 4: The lesson ----
         tabPanel(
-          "The Lesson",
+          "4. The Lesson",
           br(),
-          plotOutput("lesson_plot", height = "500px"),
+          imageOutput("lesson_plot", height = "500px"),
           br(),
           wellPanel(
             p(
@@ -253,7 +290,7 @@ server <- function(input, output, session) {
   }
   
   # ---- Tab 1: Population curves ----
-  output$pop_plot <- renderPlot({
+  output$pop_plot <- render_base("pop_plot", session, function() {
     
     mu_a <- input$mean_a;  sd_a <- input$sd_a
     mu_b <- input$mean_b;  sd_b <- input$sd_b
@@ -285,12 +322,12 @@ server <- function(input, output, session) {
   })
   
   # ---- Tab 2: Sample histograms ----
-  output$sample_plot <- renderPlot({
+  output$sample_plot <- render_base("sample_plot", session, function() {
     
     s    <- samples()
     xlim <- range(c(s$a, s$b,
-                    input$mean_a - 4*input$sd_a,
-                    input$mean_b + 4*input$sd_b))
+                    input$mean_a + c(-4, 4) * input$sd_a,
+                    input$mean_b + c(-4, 4) * input$sd_b))
     
     par(mfrow = c(1, 2), mar = c(5, 5, 4, 2),
         cex.axis = 1.3, cex.lab = 1.4, cex.main = 1.5)
@@ -320,7 +357,7 @@ server <- function(input, output, session) {
   })
   
   # ---- Tab 3: Pooled histogram ----
-  output$pooled_plot <- renderPlot({
+  output$pooled_plot <- render_base("pooled_plot", session, function() {
     
     s   <- samples()
     pld <- pooled()
@@ -410,8 +447,11 @@ server <- function(input, output, session) {
     )
   })
   
-  # ---- Tab 4: W vs mean difference with 95% CI ribbon ----
-  output$lesson_plot <- renderPlot({
+  # ---- Tab 4: simulation (20 000 Shapiro-Wilk tests) ----
+  # Kept separate from the plot so it only re-runs when the SDs or
+  # sample sizes change. Moving the mean sliders just moves the
+  # "Your setting" marker instead of repeating the whole simulation.
+  lesson_sim <- reactive({
     
     sd_a <- input$sd_a
     sd_b <- input$sd_b
@@ -451,6 +491,22 @@ server <- function(input, output, session) {
     # Where does the majority (>50%) of samples start failing?
     majority_fail <- which(prop_sig >= 0.50)
     fail_start    <- if (length(majority_fail) > 0) diffs[majority_fail[1]] else NA
+    
+    list(sd_a = sd_a, sd_b = sd_b, n_a = n_a, n_b = n_b, n_rep = n_rep,
+         diffs = diffs, max_diff = max_diff,
+         w_med = w_med, w_lo = w_lo, w_hi = w_hi,
+         crit_w = crit_w, fail_start = fail_start)
+  })
+  
+  # ---- Tab 4: W vs mean difference with 95% CI ribbon ----
+  output$lesson_plot <- render_base("lesson_plot", session, function() {
+    
+    r <- lesson_sim()
+    sd_a  <- r$sd_a;  sd_b <- r$sd_b
+    n_a   <- r$n_a;   n_b  <- r$n_b;  n_rep <- r$n_rep
+    diffs <- r$diffs; max_diff <- r$max_diff
+    w_med <- r$w_med; w_lo <- r$w_lo; w_hi <- r$w_hi
+    crit_w <- r$crit_w; fail_start <- r$fail_start
     
     current_diff <- abs(input$mean_a - input$mean_b)
     
